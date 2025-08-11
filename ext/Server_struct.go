@@ -6,5 +6,5 @@ import (
 
 type Server struct {
 	Addr    string
-	Handler http.Handler
+	Handler http.ServeMux
 }

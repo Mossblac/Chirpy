@@ -3,18 +3,15 @@ package main
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/Mossblac/Chirpy/ext"
 )
 
 func main() {
+
 	mux := http.NewServeMux()
 
-	server := ext.Server{
-		Addr:    ":8080",
-		Handler: mux,
-	}
+	mux.Handle("/", http.FileServer(http.Dir(".")))
 
-	err := http.ListenAndServe(server.Addr, server.Handler)
+	err := http.ListenAndServe(":8080", mux)
 	fmt.Printf("%v", err)
+
 }
