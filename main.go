@@ -15,11 +15,11 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/healthz", ext.HealthzHandler)
+	mux.HandleFunc("GET /healthz", ext.HealthzHandler)
 
-	mux.HandleFunc("/metrics", cfg.ShowCountHandler)
+	mux.HandleFunc("GET /metrics", cfg.ShowCountHandler)
 
-	mux.HandleFunc("/reset", cfg.ResetCountHandler)
+	mux.HandleFunc("POST /reset", cfg.ResetCountHandler)
 
 	mux.Handle("/app/", cfg.MetricsINC(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 
