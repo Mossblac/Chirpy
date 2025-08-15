@@ -3,7 +3,6 @@ package ext
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync/atomic"
 )
@@ -63,8 +62,8 @@ func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
 		Error string `json:"error"`
 	}
 
-	type returnValValid struct {
-		Valid bool `json:"valid"`
+	type returnCleanBody struct {
+		Cleaned_body string `json:"cleaned_body"`
 	}
 
 	somethingwentwrong := returnValError{
@@ -75,35 +74,20 @@ func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
 	param := params{}
 	err := decoder.Decode(&param)
 	if err != nil {
-		writeJSONResponse(w, 500, somethingwentwrong)
+		WriteJSONResponse(w, 500, somethingwentwrong)
 		return
 	}
 	if len(param.Text) <= 140 && len(param.Text) > 0 {
-		sendValid := returnValValid{
-			Valid: true,
-		}
-		writeJSONResponse(w, 200, sendValid)
-	} else if len(param.Text) > 140 {
-		sendTooLong := returnValError{
-			Error: "Chirp is too long",
-		}
-		writeJSONResponse(w, 400, sendTooLong)
-	} else {
-		invalidChirp := returnValError{
-			Error: "Chirp is invalid",
-		}
-		writeJSONResponse(w, 400, invalidChirp)
-	}
-}
+		cleantext := WordCleaner(param.Text)
+		sendCleanText := returnCleanBody{Cleaned_body: cleantext}
+		WriteJSONResponse(w, 200, sendCleanText)
 
-func writeJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
-	dat, err := json.Marshal(data)
-	if err != nil {
-		log.Printf("Error marshalling JSON: %s", err)
-		w.WriteHeader(500)
-		return
+	} else if len(param.Text) > 140 {
+		sendTooLong := returnValError{Error: "Chirp is too long"}
+		WriteJSONResponse(w, 400, sendTooLong)
+
+	} else {
+		invalidChirp := returnValError{Error: "Chirp is invalid"}
+		WriteJSONResponse(w, 400, invalidChirp)
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	w.Write(dat)
 }
