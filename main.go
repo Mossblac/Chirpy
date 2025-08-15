@@ -27,9 +27,11 @@ func main() {
 
 	mux.HandleFunc("GET /admin/metrics", cfg.ShowCountHandler)
 
-	mux.HandleFunc("POST /admin/reset", cfg.ResetCountHandler)
+	mux.HandleFunc("POST /admin/reset", cfg.ResetHandler)
 
 	mux.HandleFunc("POST /api/validate_chirp", ext.ValidateChirpHandler)
+
+	mux.HandleFunc("POST /api/users", cfg.CreateUserHandler)
 
 	mux.Handle("/app/", cfg.MetricsINC(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 

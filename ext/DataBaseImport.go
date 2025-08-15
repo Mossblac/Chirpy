@@ -29,3 +29,17 @@ func DatabaseAccess() (*database.Queries, error) {
 
 	return dbQueries, nil
 }
+
+func DevAccess() (access bool, err error) {
+	err = godotenv.Load()
+	if err != nil {
+		return false, fmt.Errorf("error loading .env file: %v", err)
+	}
+
+	platform := os.Getenv("PLATFORM")
+	if platform != "dev" {
+		return false, nil
+	}
+
+	return true, nil
+}

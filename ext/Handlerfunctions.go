@@ -5,13 +5,35 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+	"time"
 
 	"github.com/Mossblac/Chirpy/internal/database"
+	"github.com/google/uuid"
 )
 
 type ApiConfig struct {
 	FileserverHits atomic.Int32
 	DB             *database.Queries
+}
+
+type Params struct {
+	Text  string `json:"body"`
+	Email string `json:"email"`
+}
+
+type ReturnValError struct {
+	Error string `json:"error"`
+}
+
+type ReturnCleanBody struct {
+	Cleaned_body string `json:"cleaned_body"`
+}
+
+type NewUser struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
 }
 
 func (cfg *ApiConfig) MetricsINC(next http.Handler) http.Handler {
@@ -36,10 +58,27 @@ func (cfg *ApiConfig) ShowCountHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Total Hits: %v\n", cfg.FileserverHits.Load())
 }
 
-func (cfg *ApiConfig) ResetCountHandler(w http.ResponseWriter, r *http.Request) {
-	cfg.FileserverHits.Store(0)
-	w.Write([]byte(fmt.Sprintln("hit count reset")))
-	fmt.Printf("hit counter reset\n")
+func (cfg *ApiConfig) ResetHandler(w http.ResponseWriter, r *http.Request) {
+	access, err := DevAccess()
+	if err != nil {
+		w.Write([]byte(fmt.Sprintln("requires Dev permission")))
+		w.WriteHeader(403)
+	}
+	if access {
+		cfg.FileserverHits.Store(0)
+		w.Write([]byte(fmt.Sprintln("hit count reset")))
+		fmt.Printf("hit counter reset\n")
+
+		err := cfg.DB.DeleteAllUsers(r.Context())
+		if err != nil {
+			somethingwentwrong := ReturnValError{Error: "Something went wrong"}
+			WriteJSONResponse(w, 500, somethingwentwrong)
+			template := "Error: %v"
+			w.Write([]byte(fmt.Sprintf(template, err)))
+		}
+		w.Write([]byte(fmt.Sprintln("Users Reset")))
+		fmt.Printf("users reset\n")
+	}
 }
 
 func HealthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -57,18 +96,6 @@ func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
-
-	type Params struct {
-		Text string `json:"body"`
-	}
-
-	type ReturnValError struct {
-		Error string `json:"error"`
-	}
-
-	type ReturnCleanBody struct {
-		Cleaned_body string `json:"cleaned_body"`
-	}
 
 	decoder := json.NewDecoder(r.Body)
 	param := Params{}
@@ -92,3 +119,36 @@ func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
 		WriteJSONResponse(w, 400, invalidChirp)
 	}
 }
+
+func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
+
+	decoder := json.NewDecoder(r.Body)
+	emailToSet := Params{}
+	err := decoder.Decode(&emailToSet)
+	if err != nil {
+		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
+		template := "Error: %v"
+		w.Write([]byte(fmt.Sprintf(template, err)))
+		WriteJSONResponse(w, 500, somethingwentwrong)
+		return
+	}
+
+	user, err := cfg.DB.CreateUser(r.Context(), emailToSet.Email)
+	if err != nil {
+		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
+		WriteJSONResponse(w, 500, somethingwentwrong)
+		template := "Error: %v"
+		w.Write([]byte(fmt.Sprintf(template, err)))
+		return
+	}
+	newuser := NewUser{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
+	}
+
+	WriteJSONResponse(w, 201, newuser)
+}
+
+//func (q *Queries) CreateUser(ctx context.Context, email string) (User, error)
