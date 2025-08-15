@@ -54,40 +54,38 @@ func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
-	type params struct {
+
+	type Params struct {
 		Text string `json:"body"`
 	}
 
-	type returnValError struct {
+	type ReturnValError struct {
 		Error string `json:"error"`
 	}
 
-	type returnCleanBody struct {
+	type ReturnCleanBody struct {
 		Cleaned_body string `json:"cleaned_body"`
 	}
 
-	somethingwentwrong := returnValError{
-		Error: "Something went wrong",
-	}
-
 	decoder := json.NewDecoder(r.Body)
-	param := params{}
+	param := Params{}
 	err := decoder.Decode(&param)
 	if err != nil {
+		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
 		WriteJSONResponse(w, 500, somethingwentwrong)
 		return
 	}
 	if len(param.Text) <= 140 && len(param.Text) > 0 {
 		cleantext := WordCleaner(param.Text)
-		sendCleanText := returnCleanBody{Cleaned_body: cleantext}
+		sendCleanText := ReturnCleanBody{Cleaned_body: cleantext}
 		WriteJSONResponse(w, 200, sendCleanText)
 
 	} else if len(param.Text) > 140 {
-		sendTooLong := returnValError{Error: "Chirp is too long"}
+		sendTooLong := ReturnValError{Error: "Chirp is too long"}
 		WriteJSONResponse(w, 400, sendTooLong)
 
 	} else {
-		invalidChirp := returnValError{Error: "Chirp is invalid"}
+		invalidChirp := ReturnValError{Error: "Chirp is invalid"}
 		WriteJSONResponse(w, 400, invalidChirp)
 	}
 }
