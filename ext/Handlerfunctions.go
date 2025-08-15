@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+
+	"github.com/Mossblac/Chirpy/internal/database"
 )
 
 type ApiConfig struct {
 	FileserverHits atomic.Int32
+	DB             *database.Queries
 }
 
 func (cfg *ApiConfig) MetricsINC(next http.Handler) http.Handler {

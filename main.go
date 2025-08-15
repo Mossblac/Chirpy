@@ -2,15 +2,23 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"sync/atomic"
 
 	"github.com/Mossblac/Chirpy/ext"
+	_ "github.com/lib/pq"
 )
 
 func main() {
+	dbQueries, err := ext.DatabaseAccess()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	cfg := ext.ApiConfig{
 		FileserverHits: atomic.Int32{},
+		DB:             dbQueries,
 	}
 
 	mux := http.NewServeMux()
@@ -36,7 +44,7 @@ func main() {
 		the function for the main page: "/app/"
 	*/
 
-	err := http.ListenAndServe(":8080", mux)
+	err = http.ListenAndServe(":8080", mux)
 	fmt.Printf("%v", err)
 
 }
