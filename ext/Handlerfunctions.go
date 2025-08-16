@@ -17,8 +17,9 @@ type ApiConfig struct {
 }
 
 type Params struct {
-	Text  string `json:"body"`
-	Email string `json:"email"`
+	Text    string    `json:"body"`
+	Email   string    `json:"email"`
+	User_id uuid.UUID `json:"user_id"`
 }
 
 type ReturnValError struct {
@@ -34,6 +35,14 @@ type NewUser struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+}
+
+type NewChirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
 }
 
 func (cfg *ApiConfig) MetricsINC(next http.Handler) http.Handler {
@@ -95,31 +104,6 @@ func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("wrote %d bytes to response\n", n)
 }
 
-func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
-
-	decoder := json.NewDecoder(r.Body)
-	param := Params{}
-	err := decoder.Decode(&param)
-	if err != nil {
-		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
-		WriteJSONResponse(w, 500, somethingwentwrong)
-		return
-	}
-	if len(param.Text) <= 140 && len(param.Text) > 0 {
-		cleantext := WordCleaner(param.Text)
-		sendCleanText := ReturnCleanBody{Cleaned_body: cleantext}
-		WriteJSONResponse(w, 200, sendCleanText)
-
-	} else if len(param.Text) > 140 {
-		sendTooLong := ReturnValError{Error: "Chirp is too long"}
-		WriteJSONResponse(w, 400, sendTooLong)
-
-	} else {
-		invalidChirp := ReturnValError{Error: "Chirp is invalid"}
-		WriteJSONResponse(w, 400, invalidChirp)
-	}
-}
-
 func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
@@ -151,4 +135,26 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	WriteJSONResponse(w, 201, newuser)
 }
 
-//func (q *Queries) CreateUser(ctx context.Context, email string) (User, error)
+func (cfg *ApiConfig) CreateChirpHandler(w http.ResponseWriter, r *http.Request) {
+	validChirp, user_id := ValidateChirp(w, r)
+	chirpParams := database.CreateChirpParams{
+		Body:   validChirp,
+		UserID: user_id,
+	}
+
+	chirp, err := cfg.DB.CreateChirp(r.Context(), chirpParams)
+	if err != nil {
+		template := "Error: %v"
+		w.Write([]byte(fmt.Sprintf(template, err)))
+	}
+
+	newchirp := NewChirp{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
+	}
+
+	WriteJSONResponse(w, 201, newchirp)
+}

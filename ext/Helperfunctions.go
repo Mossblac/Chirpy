@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 func WriteJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
@@ -30,4 +32,29 @@ func WordCleaner(bodytext string) string {
 		}
 	}
 	return strings.Join(words, " ")
+}
+
+func ValidateChirp(w http.ResponseWriter, r *http.Request) (string, uuid.UUID) {
+
+	decoder := json.NewDecoder(r.Body)
+	param := Params{}
+	err := decoder.Decode(&param)
+	if err != nil {
+		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
+		WriteJSONResponse(w, 500, somethingwentwrong)
+		return "", uuid.Nil
+	}
+	if len(param.Text) <= 140 && len(param.Text) > 0 {
+		cleantext := WordCleaner(param.Text)
+		return cleantext, param.User_id
+
+	} else if len(param.Text) > 140 {
+		sendTooLong := ReturnValError{Error: "Chirp is too long"}
+		WriteJSONResponse(w, 400, sendTooLong)
+
+	} else {
+		invalidChirp := ReturnValError{Error: "Chirp is invalid"}
+		WriteJSONResponse(w, 400, invalidChirp)
+	}
+	return "", uuid.Nil
 }

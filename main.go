@@ -29,7 +29,7 @@ func main() {
 
 	mux.HandleFunc("POST /admin/reset", cfg.ResetHandler)
 
-	mux.HandleFunc("POST /api/validate_chirp", ext.ValidateChirpHandler)
+	mux.HandleFunc("POST /api/chirps", cfg.CreateChirpHandler)
 
 	mux.HandleFunc("POST /api/users", cfg.CreateUserHandler)
 

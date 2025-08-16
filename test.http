@@ -1,8 +1,10 @@
 
 
-POST http://localhost:8080/api/users
-Content-Type: application/json
+
+
+POST http://localhost:8080/	
 
 {
-  "email": "anotherfakeemail@doesnotexist.com"
+  "body": "Hello, world!",
+  "user_id": "123e4567-e89b-12d3-a456-426614174000"
 }
