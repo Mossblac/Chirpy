@@ -33,6 +33,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/users", cfg.CreateUserHandler)
 
+	mux.HandleFunc("GET /api/chirps", cfg.GetChirpsHandler)
+
 	mux.Handle("/app/", cfg.MetricsINC(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 
 	/*

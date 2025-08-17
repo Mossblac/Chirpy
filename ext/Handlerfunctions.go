@@ -158,3 +158,15 @@ func (cfg *ApiConfig) CreateChirpHandler(w http.ResponseWriter, r *http.Request)
 
 	WriteJSONResponse(w, 201, newchirp)
 }
+
+func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.DB.GetChirps(r.Context())
+	if err != nil {
+		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
+		template := "Error: %v"
+		w.Write([]byte(fmt.Sprintf(template, err)))
+		WriteJSONResponse(w, 500, somethingwentwrong)
+	}
+
+	WriteJSONResponse(w, 200, chirps)
+}

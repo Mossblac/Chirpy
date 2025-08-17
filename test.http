@@ -2,9 +2,20 @@
 
 
 
-POST http://localhost:8080/	
+POST http://localhost:8080/api/users
 
 {
-  "body": "Hello, world!",
-  "user_id": "123e4567-e89b-12d3-a456-426614174000"
+  "body": "nothing to see here",
+  "email": "test@mail.com"
+}
+
+
+###
+
+
+POST http://localhost:8080/api/chirps	
+
+{
+  "body": "this should be created as a chirp",
+  "user_id": "30ce3ebd-e168-4141-b9a4-d7848e198aa2"
 }
