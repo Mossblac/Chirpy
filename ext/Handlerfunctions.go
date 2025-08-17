@@ -168,5 +168,17 @@ func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {
 		WriteJSONResponse(w, 500, somethingwentwrong)
 	}
 
-	WriteJSONResponse(w, 200, chirps)
+	apiChirps := make([]NewChirp, 0, len(chirps))
+
+	for _, c := range chirps {
+		apiChirps = append(apiChirps, NewChirp{
+			ID:        c.ID,
+			CreatedAt: c.CreatedAt,
+			UpdatedAt: c.UpdatedAt,
+			Body:      c.Body,
+			UserID:    c.UserID,
+		})
+	}
+
+	WriteJSONResponse(w, 200, apiChirps)
 }
