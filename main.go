@@ -35,6 +35,8 @@ func main() {
 
 	mux.HandleFunc("GET /api/chirps", cfg.GetChirpsHandler)
 
+	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.GetSingleChirpHandler)
+
 	mux.Handle("/app/", cfg.MetricsINC(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 
 	/*

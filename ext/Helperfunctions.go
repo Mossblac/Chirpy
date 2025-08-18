@@ -2,6 +2,7 @@ package ext
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -40,8 +41,7 @@ func ValidateChirp(w http.ResponseWriter, r *http.Request) (string, uuid.UUID) {
 	param := Params{}
 	err := decoder.Decode(&param)
 	if err != nil {
-		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
-		WriteJSONResponse(w, 500, somethingwentwrong)
+		WriteError(w, err)
 		return "", uuid.Nil
 	}
 	if len(param.Text) <= 140 && len(param.Text) > 0 {
@@ -57,4 +57,11 @@ func ValidateChirp(w http.ResponseWriter, r *http.Request) (string, uuid.UUID) {
 		WriteJSONResponse(w, 400, invalidChirp)
 	}
 	return "", uuid.Nil
+}
+
+func WriteError(w http.ResponseWriter, err error) {
+	somethingwentwrong := ReturnValError{Error: "Something went wrong\n\n"}
+	template := "Error: %v\n\n"
+	w.Write([]byte(fmt.Sprintf(template, err)))
+	WriteJSONResponse(w, 500, somethingwentwrong)
 }

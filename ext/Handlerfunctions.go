@@ -1,13 +1,16 @@
 package ext
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync/atomic"
 	"time"
 
 	"github.com/Mossblac/Chirpy/internal/database"
+
 	"github.com/google/uuid"
 )
 
@@ -80,10 +83,7 @@ func (cfg *ApiConfig) ResetHandler(w http.ResponseWriter, r *http.Request) {
 
 		err := cfg.DB.DeleteAllUsers(r.Context())
 		if err != nil {
-			somethingwentwrong := ReturnValError{Error: "Something went wrong"}
-			WriteJSONResponse(w, 500, somethingwentwrong)
-			template := "Error: %v"
-			w.Write([]byte(fmt.Sprintf(template, err)))
+			WriteError(w, err)
 		}
 		w.Write([]byte(fmt.Sprintln("Users Reset")))
 		fmt.Printf("users reset\n")
@@ -110,19 +110,13 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 	emailToSet := Params{}
 	err := decoder.Decode(&emailToSet)
 	if err != nil {
-		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
-		template := "Error: %v"
-		w.Write([]byte(fmt.Sprintf(template, err)))
-		WriteJSONResponse(w, 500, somethingwentwrong)
+		WriteError(w, err)
 		return
 	}
 
 	user, err := cfg.DB.CreateUser(r.Context(), emailToSet.Email)
 	if err != nil {
-		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
-		WriteJSONResponse(w, 500, somethingwentwrong)
-		template := "Error: %v"
-		w.Write([]byte(fmt.Sprintf(template, err)))
+		WriteError(w, err)
 		return
 	}
 	newuser := NewUser{
@@ -162,10 +156,7 @@ func (cfg *ApiConfig) CreateChirpHandler(w http.ResponseWriter, r *http.Request)
 func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	chirps, err := cfg.DB.GetChirps(r.Context())
 	if err != nil {
-		somethingwentwrong := ReturnValError{Error: "Something went wrong"}
-		template := "Error: %v"
-		w.Write([]byte(fmt.Sprintf(template, err)))
-		WriteJSONResponse(w, 500, somethingwentwrong)
+		WriteError(w, err)
 	}
 
 	apiChirps := make([]NewChirp, 0, len(chirps))
@@ -182,3 +173,33 @@ func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {
 
 	WriteJSONResponse(w, 200, apiChirps)
 }
+
+func (cfg *ApiConfig) GetSingleChirpHandler(w http.ResponseWriter, r *http.Request) {
+	inputid := (r).PathValue("chirpID")
+	chirpid, err := uuid.Parse(inputid)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	chirp, err := cfg.DB.GetSingleChirpByID(r.Context(), chirpid)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(404)
+			return
+		} else {
+			WriteError(w, err)
+			return
+		}
+	}
+	newchirp := NewChirp{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
+	}
+
+	WriteJSONResponse(w, 200, newchirp)
+}
+
+//func (q *Queries) GetSingleChirpByID(ctx context.Context, id uuid.UUID) (Chirp, error)
