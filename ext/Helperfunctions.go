@@ -65,3 +65,10 @@ func WriteError(w http.ResponseWriter, err error) {
 	w.Write([]byte(fmt.Sprintf(template, err)))
 	WriteJSONResponse(w, 500, somethingwentwrong)
 }
+
+func WritePasswordError(w http.ResponseWriter, err error) {
+	passwordrequired := ReturnValError{Error: "Password required\n\n"}
+	template := "Error: %v\n\n"
+	w.Write([]byte(fmt.Sprintf(template, err)))
+	WriteJSONResponse(w, 500, passwordrequired)
+}

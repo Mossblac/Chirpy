@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Mossblac/Chirpy/internal/auth"
 	"github.com/Mossblac/Chirpy/internal/database"
 
 	"github.com/google/uuid"
@@ -20,9 +21,10 @@ type ApiConfig struct {
 }
 
 type Params struct {
-	Text    string    `json:"body"`
-	Email   string    `json:"email"`
-	User_id uuid.UUID `json:"user_id"`
+	Text     string    `json:"body"`
+	Email    string    `json:"email"`
+	User_id  uuid.UUID `json:"user_id"`
+	Password string    `json:"password"`
 }
 
 type ReturnValError struct {
@@ -107,26 +109,48 @@ func HealthzHandler(w http.ResponseWriter, r *http.Request) {
 func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
-	emailToSet := Params{}
-	err := decoder.Decode(&emailToSet)
+	paramUnhashed := Params{}
+	err := decoder.Decode(&paramUnhashed)
 	if err != nil {
 		WriteError(w, err)
 		return
 	}
 
-	user, err := cfg.DB.CreateUser(r.Context(), emailToSet.Email)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-	newuser := NewUser{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-	}
+	if paramUnhashed.Password == "unset" || paramUnhashed.Password == "" {
+		WritePasswordError(w, err)
+	} else {
 
-	WriteJSONResponse(w, 201, newuser)
+		hash, err := auth.HashPassword(paramUnhashed.Password)
+		if err != nil {
+			WriteError(w, err)
+			return
+		}
+
+		err = auth.CheckPasswordHash(paramUnhashed.Password, hash)
+		if err != nil {
+			WriteError(w, err)
+			return
+		}
+
+		hashedparams := database.CreateUserParams{
+			Email:          paramUnhashed.Email,
+			HashedPassword: hash,
+		}
+
+		user, err := cfg.DB.CreateUser(r.Context(), hashedparams)
+		if err != nil {
+			WriteError(w, err)
+			return
+		}
+		newuser := NewUser{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		}
+
+		WriteJSONResponse(w, 201, newuser)
+	}
 }
 
 func (cfg *ApiConfig) CreateChirpHandler(w http.ResponseWriter, r *http.Request) {

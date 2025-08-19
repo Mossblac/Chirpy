@@ -5,8 +5,8 @@
 POST http://localhost:8080/api/users
 
 {
-  "body": "nothing to see here",
-  "email": "test@mail.com"
+  "email": "anothertest@mail.com",
+  "password": "unset"
 }
 
 
@@ -16,6 +16,21 @@ POST http://localhost:8080/api/users
 POST http://localhost:8080/api/chirps	
 
 {
-  "body": "this should be created as a chirp",
-  "user_id": "30ce3ebd-e168-4141-b9a4-d7848e198aa2"
+  "body": "this is a test chirp",
+  "user_id": "4eb853a7-eea0-4131-a34a-990a908d8e32"
 }
+
+###
+
+
+POST http://localhost:8080/admin/reset
+
+
+###
+
+GET http://localhost:8080/api/chirps/f0dcc40a-8155-4f7c-9add-8b2c1c27e60d
+
+
+
+
+
