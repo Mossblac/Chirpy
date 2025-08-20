@@ -61,14 +61,16 @@ func ValidateChirp(w http.ResponseWriter, r *http.Request) (string, uuid.UUID) {
 
 func WriteError(w http.ResponseWriter, err error) {
 	somethingwentwrong := ReturnValError{Error: "Something went wrong\n\n"}
-	template := "Error: %v\n\n"
+	template := "Error: %v"
+	fmt.Printf("Error: %v\n\n", err)
 	w.Write([]byte(fmt.Sprintf(template, err)))
 	WriteJSONResponse(w, 500, somethingwentwrong)
 }
 
 func WritePasswordError(w http.ResponseWriter, err error) {
 	passwordrequired := ReturnValError{Error: "Password required\n\n"}
-	template := "Error: %v\n\n"
+	template := "Error: %v"
+	fmt.Printf("Error: %v\n\n", err)
 	w.Write([]byte(fmt.Sprintf(template, err)))
 	WriteJSONResponse(w, 500, passwordrequired)
 }

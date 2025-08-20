@@ -6,7 +6,7 @@ POST http://localhost:8080/api/users
 
 {
   "email": "anothertest@mail.com",
-  "password": "unset"
+  "password": "jibberjabber"
 }
 
 
@@ -23,12 +23,23 @@ POST http://localhost:8080/api/chirps
 ###
 
 
-POST http://localhost:8080/admin/reset
+POST http://localhost:8080/user/login
+
+{
+  "email": "anothertest@mail.com",
+  "password": "jibberjabber"
+}
+
 
 
 ###
 
 GET http://localhost:8080/api/chirps/f0dcc40a-8155-4f7c-9add-8b2c1c27e60d
+
+###
+
+
+POST http://localhost:8080/admin/reset
 
 
 

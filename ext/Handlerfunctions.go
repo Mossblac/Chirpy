@@ -126,12 +126,6 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		err = auth.CheckPasswordHash(paramUnhashed.Password, hash)
-		if err != nil {
-			WriteError(w, err)
-			return
-		}
-
 		hashedparams := database.CreateUserParams{
 			Email:          paramUnhashed.Email,
 			HashedPassword: hash,
@@ -150,6 +144,7 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		}
 
 		WriteJSONResponse(w, 201, newuser)
+		fmt.Println("User created")
 	}
 }
 
@@ -226,4 +221,39 @@ func (cfg *ApiConfig) GetSingleChirpHandler(w http.ResponseWriter, r *http.Reque
 	WriteJSONResponse(w, 200, newchirp)
 }
 
-//func (q *Queries) GetSingleChirpByID(ctx context.Context, id uuid.UUID) (Chirp, error)
+func (cfg *ApiConfig) UserLoginHandler(w http.ResponseWriter, r *http.Request) {
+
+	decoder := json.NewDecoder(r.Body)
+	loginparam := Params{}
+	err := decoder.Decode(&loginparam)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	user, err := cfg.DB.GetUserViaEmail(r.Context(), loginparam.Email)
+	if err != nil {
+		w.WriteHeader(401)
+		notAuthorized := "incorrect email or password"
+		w.Write([]byte(notAuthorized))
+		return
+	}
+
+	err = auth.CheckPasswordHash(loginparam.Password, user.HashedPassword)
+	if err != nil {
+		w.WriteHeader(401)
+		notAuthorized := "incorrect email or password"
+		w.Write([]byte(notAuthorized))
+		return
+	}
+
+	displayUser := NewUser{
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
+	}
+
+	WriteJSONResponse(w, 200, displayUser)
+	fmt.Println("User Logged in")
+}
