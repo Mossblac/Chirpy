@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"net/http"
 	"testing"
 )
 
@@ -35,4 +36,40 @@ func TestHashing(t *testing.T) {
 		t.Errorf("hashing function returned error: %v", err)
 	}
 
+}
+
+func TestGetBearerRegular(t *testing.T) {
+	headers := http.Header{}
+	headers.Set("Authorization", "Bearer my_test_token_123")
+
+	token, err := GetBearerToken(headers)
+
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+	if token != "my_test_token_123" {
+		t.Errorf("Expected 'my_test_token_123', got: '%s'", token)
+	}
+}
+
+func TestGetBearerEmpty(t *testing.T) {
+	headers := http.Header{}
+	headers.Set("notAuthorized", "This is not an authorization")
+
+	_, err := GetBearerToken(headers)
+
+	if err == nil {
+		t.Errorf("invalid format, should have errored")
+	}
+}
+
+func TestGetBearerMissingToken(t *testing.T) {
+	headers := http.Header{}
+	headers.Set("Authorization", "Bearer")
+
+	_, err := GetBearerToken(headers)
+
+	if err == nil {
+		t.Errorf("no token present, should have errored")
+	}
 }

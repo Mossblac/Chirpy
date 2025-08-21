@@ -18,13 +18,15 @@ import (
 type ApiConfig struct {
 	FileserverHits atomic.Int32
 	DB             *database.Queries
+	SecretWord     string
 }
 
 type Params struct {
-	Text     string    `json:"body"`
-	Email    string    `json:"email"`
-	User_id  uuid.UUID `json:"user_id"`
-	Password string    `json:"password"`
+	Text               string    `json:"body"`
+	Email              string    `json:"email"`
+	User_id            uuid.UUID `json:"user_id"`
+	Password           string    `json:"password"`
+	Expires_in_seconds int       `json:"expiration"`
 }
 
 type ReturnValError struct {
@@ -40,6 +42,7 @@ type NewUser struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	Token     string    `json:"token"`
 }
 
 type NewChirp struct {
@@ -149,7 +152,19 @@ func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (cfg *ApiConfig) CreateChirpHandler(w http.ResponseWriter, r *http.Request) {
-	validChirp, user_id := ValidateChirp(w, r)
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		WriteError(w, err)
+		w.WriteHeader(401)
+	}
+
+	user_id, err := auth.ValidateJWT(token, cfg.SecretWord)
+	if err != nil {
+		WriteError(w, err)
+		w.WriteHeader(401)
+	}
+
+	validChirp, _ := ValidateChirp(w, r)
 	chirpParams := database.CreateChirpParams{
 		Body:   validChirp,
 		UserID: user_id,
@@ -247,13 +262,30 @@ func (cfg *ApiConfig) UserLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	Sword := cfg.SecretWord
+
+	var duration time.Duration
+
+	if loginparam.Expires_in_seconds > 0 && loginparam.Expires_in_seconds < 3600 {
+		duration = time.Duration(loginparam.Expires_in_seconds) * time.Second
+	} else {
+		duration = time.Duration(1) * time.Hour
+	}
+
+	token, err := auth.MakeJWT(user.ID, Sword, duration)
+	if err != nil {
+		WriteError(w, err)
+	}
+
 	displayUser := NewUser{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email:     user.Email,
+		Token:     token,
 	}
 
 	WriteJSONResponse(w, 200, displayUser)
 	fmt.Println("User Logged in")
+
 }

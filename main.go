@@ -16,9 +16,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	Sword, err := ext.GetSecretWord()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	cfg := ext.ApiConfig{
 		FileserverHits: atomic.Int32{},
 		DB:             dbQueries,
+		SecretWord:     Sword,
 	}
 
 	mux := http.NewServeMux()

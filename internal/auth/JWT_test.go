@@ -15,12 +15,12 @@ func TestJWT(t *testing.T) {
 	tokenSecret := "jumbalaya"
 	expiresIn := 12 * time.Hour
 
-	stringToTest, err := MakeJWT(userId, tokenSecret, expiresIn)
+	TokenToTest, err := MakeJWT(userId, tokenSecret, expiresIn)
 	if err != nil {
 		t.Errorf("error creating JWT %v", err)
 	}
 
-	ID, err := ValidateJWT(stringToTest, tokenSecret)
+	ID, err := ValidateJWT(TokenToTest, tokenSecret)
 	if err != nil {
 		t.Errorf("unable to validate jwt %v", err)
 	}

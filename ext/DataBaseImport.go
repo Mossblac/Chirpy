@@ -43,3 +43,14 @@ func DevAccess() (access bool, err error) {
 
 	return true, nil
 }
+
+func GetSecretWord() (string, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return "", fmt.Errorf("error loading .env file: %v", err)
+	}
+
+	word := os.Getenv("SECRETWORD")
+
+	return word, nil
+}
