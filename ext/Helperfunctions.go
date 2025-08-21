@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Mossblac/Chirpy/internal/auth"
 	"github.com/google/uuid"
 )
 
@@ -60,7 +61,7 @@ func ValidateChirp(w http.ResponseWriter, r *http.Request) (string, uuid.UUID) {
 }
 
 func WriteError(w http.ResponseWriter, err error) {
-	somethingwentwrong := ReturnValError{Error: "Something went wrong\n\n"}
+	somethingwentwrong := ReturnValError{Error: "Something went wrong"}
 	template := "Error: %v"
 	fmt.Printf("Error: %v\n\n", err)
 	w.Write([]byte(fmt.Sprintf(template, err)))
@@ -68,9 +69,27 @@ func WriteError(w http.ResponseWriter, err error) {
 }
 
 func WritePasswordError(w http.ResponseWriter, err error) {
-	passwordrequired := ReturnValError{Error: "Password required\n\n"}
+	passwordrequired := ReturnValError{Error: "Password required"}
 	template := "Error: %v"
 	fmt.Printf("Error: %v\n\n", err)
 	w.Write([]byte(fmt.Sprintf(template, err)))
 	WriteJSONResponse(w, 500, passwordrequired)
+}
+
+func VerifyFromAccessTokenHeader(cfg *ApiConfig, w http.ResponseWriter, r *http.Request) (uuid.UUID, error) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		fmt.Printf("error obtaining token %v\n", err)
+		w.WriteHeader(401)
+		return uuid.Nil, err
+	}
+
+	user_id, err := auth.ValidateJWT(token, cfg.SecretWord)
+	if err != nil {
+		fmt.Printf("error validating token %v\n", err)
+		w.WriteHeader(401)
+		return uuid.Nil, err
+	}
+
+	return user_id, nil
 }

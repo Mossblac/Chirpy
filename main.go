@@ -45,6 +45,12 @@ func main() {
 
 	mux.HandleFunc("POST /api/login", cfg.UserLoginHandler)
 
+	mux.HandleFunc("POST /api/refresh", cfg.RefreshHandler)
+
+	mux.HandleFunc("POST /api/revoke", cfg.RevokeHandler)
+
+	mux.HandleFunc("PUT /api/users", cfg.ResetEmailAndPasswordHandler)
+
 	mux.Handle("/app/", cfg.MetricsINC(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 
 	/*

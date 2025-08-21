@@ -23,7 +23,7 @@ POST http://localhost:8080/api/chirps
 ###
 
 
-POST http://localhost:8080/user/login
+POST http://localhost:8080/api/login
 
 {
   "email": "anothertest@mail.com",
@@ -35,6 +35,17 @@ POST http://localhost:8080/user/login
 ###
 
 GET http://localhost:8080/api/chirps/f0dcc40a-8155-4f7c-9add-8b2c1c27e60d
+
+###
+
+POST http://localhost:8080/api/refresh
+Authorization: Bearer YOUR_refresh_code
+Content-Type: application/json
+
+{
+  "key":"value"
+}
+
 
 ###
 
