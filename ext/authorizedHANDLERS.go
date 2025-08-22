@@ -38,12 +38,13 @@ type ReturnCleanBody struct {
 }
 
 type NewUser struct {
-	ID           uuid.UUID `json:"id"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	Email        string    `json:"email"`
-	Token        string    `json:"token"`
-	RefreshToken string    `json:"refresh_token"`
+	ID            uuid.UUID `json:"id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	Email         string    `json:"email"`
+	Token         string    `json:"token"`
+	RefreshToken  string    `json:"refresh_token"`
+	Is_Chirpy_Red bool      `json:"is_chirpy_red"`
 }
 
 type NewChirp struct {
@@ -52,6 +53,15 @@ type NewChirp struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	Body      string    `json:"body"`
 	UserID    uuid.UUID `json:"user_id"`
+}
+
+type HookEvent struct {
+	Event string `json:"event"`
+	Data  UData  `json:"data"`
+}
+
+type UData struct {
+	User_id string `json:"user_id"`
 }
 
 func (cfg *ApiConfig) MetricsINC(next http.Handler) http.Handler {
@@ -67,90 +77,6 @@ func (cfg *ApiConfig) MetricsINC(next http.Handler) http.Handler {
 signature of the Handler interface and therefore returns a Handler.
 the "next" input handler is the handler that the middleware wraps around.
 see the use case in main()*/
-
-func (cfg *ApiConfig) ShowCountHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	template := "<html> <body> <h1>Welcome, Chirpy Admin</h1> <p>Chirpy has been visited %d times!</p> </body> </html>"
-
-	w.Write([]byte(fmt.Sprintf(template, cfg.FileserverHits.Load())))
-	fmt.Printf("Total Hits: %v\n", cfg.FileserverHits.Load())
-}
-
-func (cfg *ApiConfig) ResetHandler(w http.ResponseWriter, r *http.Request) {
-	access, err := DevAccess()
-	if err != nil {
-		w.Write([]byte(fmt.Sprintln("requires Dev permission")))
-		w.WriteHeader(403)
-	}
-	if access {
-		cfg.FileserverHits.Store(0)
-		w.Write([]byte(fmt.Sprintln("hit count reset")))
-		fmt.Printf("hit counter reset\n")
-
-		err := cfg.DB.DeleteAllUsers(r.Context())
-		if err != nil {
-			WriteError(w, err)
-		}
-		w.Write([]byte(fmt.Sprintln("Users Reset")))
-		fmt.Printf("users reset\n")
-	}
-}
-
-func HealthzHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8") // write the content-type header
-
-	w.WriteHeader(200) // write the status code
-
-	message := []byte("OK")
-	n, err := w.Write(message) // write the body text
-	if err != nil {
-		fmt.Printf("Error writing resposne %v\n", err)
-		return
-	}
-	fmt.Printf("wrote %d bytes to response\n", n)
-}
-
-func (cfg *ApiConfig) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
-
-	decoder := json.NewDecoder(r.Body)
-	paramUnhashed := Params{}
-	err := decoder.Decode(&paramUnhashed)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	if paramUnhashed.Password == "unset" || paramUnhashed.Password == "" {
-		WritePasswordError(w, err)
-	} else {
-
-		hash, err := auth.HashPassword(paramUnhashed.Password)
-		if err != nil {
-			WriteError(w, err)
-			return
-		}
-
-		hashedparams := database.CreateUserParams{
-			Email:          paramUnhashed.Email,
-			HashedPassword: hash,
-		}
-
-		user, err := cfg.DB.CreateUser(r.Context(), hashedparams)
-		if err != nil {
-			WriteError(w, err)
-			return
-		}
-		newuser := NewUser{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Email:     user.Email,
-		}
-
-		WriteJSONResponse(w, 201, newuser)
-		fmt.Println("User created")
-	}
-}
 
 func (cfg *ApiConfig) CreateChirpHandler(w http.ResponseWriter, r *http.Request) {
 	user_id, err := VerifyFromAccessTokenHeader(cfg, w, r)
@@ -281,12 +207,13 @@ func (cfg *ApiConfig) UserLoginHandler(w http.ResponseWriter, r *http.Request) {
 	cfg.DB.CreateRefreshToken(r.Context(), RefreshParam)
 
 	displayUser := NewUser{
-		ID:           user.ID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
-		Email:        user.Email,
-		Token:        token,
-		RefreshToken: refresh,
+		ID:            user.ID,
+		CreatedAt:     user.CreatedAt,
+		UpdatedAt:     user.UpdatedAt,
+		Email:         user.Email,
+		Token:         token,
+		RefreshToken:  refresh,
+		Is_Chirpy_Red: user.IsChirpyRed,
 	}
 
 	WriteJSONResponse(w, 200, displayUser)
@@ -376,11 +303,84 @@ func (cfg *ApiConfig) ResetEmailAndPasswordHandler(w http.ResponseWriter, r *htt
 	}
 	currentTime := time.Now()
 	displayRUser := NewUser{
-		ID:        resetuser.ID,
-		CreatedAt: resetuser.CreatedAt,
-		UpdatedAt: currentTime,
-		Email:     resetuser.Email,
+		ID:            resetuser.ID,
+		CreatedAt:     resetuser.CreatedAt,
+		UpdatedAt:     currentTime,
+		Email:         resetuser.Email,
+		Is_Chirpy_Red: resetuser.IsChirpyRed,
 	}
 	WriteJSONResponse(w, 200, displayRUser)
 	fmt.Println("email and password reset success")
+}
+
+func (cfg *ApiConfig) DeleteChirpHandler(w http.ResponseWriter, r *http.Request) {
+	user_id, err := VerifyFromAccessTokenHeader(cfg, w, r)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	inputid := (r).PathValue("chirpID")
+	chirpid, err := uuid.Parse(inputid)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	chirp, err := cfg.DB.GetSingleChirpByID(r.Context(), chirpid)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(404)
+			return
+		} else {
+			WriteError(w, err)
+			return
+		}
+	}
+
+	if user_id == chirp.UserID {
+		err := cfg.DB.DeleteChirp(r.Context(), chirp.ID)
+		if err != nil {
+			WriteError(w, err)
+			return
+		} else {
+			w.WriteHeader(204)
+			fmt.Println("deleted success")
+			return
+		}
+	} else {
+		w.WriteHeader(403)
+		fmt.Println("chirp userId does not match user ID")
+		return
+	}
+}
+
+func (cfg *ApiConfig) UpgradeToChirpyRedHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	WebHookEvent := HookEvent{}
+	err := decoder.Decode(&WebHookEvent)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	if WebHookEvent.Event != "user.upgraded" {
+		w.WriteHeader(204)
+		return
+	} else {
+		userID, err := uuid.Parse(WebHookEvent.Data.User_id)
+		if err != nil {
+			WriteError(w, err)
+			return
+		}
+		err = cfg.DB.UpgradeToChirpyRed(r.Context(), userID)
+		if err != nil {
+			w.WriteHeader(404)
+			fmt.Printf("%v", err)
+			return
+		} else {
+			w.WriteHeader(204)
+			fmt.Println("user upgrade success")
+			return
+		}
+	}
 }

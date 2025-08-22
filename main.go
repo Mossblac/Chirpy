@@ -51,6 +51,10 @@ func main() {
 
 	mux.HandleFunc("PUT /api/users", cfg.ResetEmailAndPasswordHandler)
 
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", cfg.DeleteChirpHandler)
+
+	mux.HandleFunc("POST /api/polka/webhooks", cfg.UpgradeToChirpyRedHandler)
+
 	mux.Handle("/app/", cfg.MetricsINC(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 
 	/*
