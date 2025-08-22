@@ -6,7 +6,7 @@
 
 ###
 
-![Welcome to Chirpy!](/github.com/Mossblac/Chirpy/assets/logo.png)
+![Welcome to Chirpy!](assets/logo.png)
 
 
 ###
