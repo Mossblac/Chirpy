@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -113,6 +114,8 @@ func (cfg *ApiConfig) CreateChirpHandler(w http.ResponseWriter, r *http.Request)
 
 func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	authorID := r.URL.Query().Get("author_id")
+	sortOption := r.URL.Query().Get("sort")
+
 	if authorID != "" {
 
 		ID, err := uuid.Parse(authorID)
@@ -161,6 +164,13 @@ func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {
 				Body:      c.Body,
 				UserID:    c.UserID,
 			})
+		}
+
+		if sortOption == "desc" {
+			sort.Slice(apiChirps, func(i, j int) bool { return apiChirps[i].CreatedAt.After(apiChirps[j].CreatedAt) })
+		}
+		if sortOption == "asc" || sortOption == "" {
+			sort.Slice(apiChirps, func(i, j int) bool { return apiChirps[i].CreatedAt.Before(apiChirps[j].CreatedAt) })
 		}
 
 		WriteJSONResponse(w, 200, apiChirps)
