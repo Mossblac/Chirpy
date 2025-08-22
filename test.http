@@ -1,4 +1,5 @@
-
+//you are required to set the DB_URL=databaseurlhere, POLKA_KEY=hexkey, SECRETWORD=yourrandomgeneratedkeyhere, and PLATFORM="dev"
+// within a .env file before testing any of these functions 
 
 //create a user
 
@@ -37,7 +38,7 @@ Content-Type: application/json
 
 ###
 
-// login user before creating chirp - JWT access token and Hex Refresh token provided in output
+// login user before creating chirp - JWT access token and Hex Refresh token provided in output - need to set 'SECRETWORD=randomgeneratednumberhere' in .env
 POST http://localhost:8080/api/login
 
 {
