@@ -1,19 +1,34 @@
 
 
-
+//create a user
 
 POST http://localhost:8080/api/users
 
 {
-  "email": "anothertest@mail.com",
+  "email": "test@mail.com",
   "password": "jibberjabber"
 }
 
 
 ###
 
+//upgrade to chirpy red authorization 
+POST http://localhost:8080/api/polka/webhooks
 
+{
+  "event": "user.upgraded",
+  "data": {
+    "user_id": "944d38d6-e68d-4da7-851a-fac3d6ee959b"
+  }
+}
+
+
+###
+
+//create a chirp - following Bearer, JWT access token required ( copy from login output ) 
 POST http://localhost:8080/api/chirps	
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiY2xhaW0iLCJpc3MiOiJjaGlycHkiLCJzdWIiOiI3OWI5OTIzMS1jNWQ1LTRmZTgtOWQ3MC03ZjIwNzNjNzExYjMiLCJleHAiOjE3NTU4MjU3OTksImlhdCI6MTc1NTgyMjE5OX0.LKOTVG51vqtrxWACYMnA2uV63Pl5nAK8KUdWMDlBn3g
+Content-Type: application/json
 
 {
   "body": "this is a test chirp",
@@ -22,11 +37,11 @@ POST http://localhost:8080/api/chirps
 
 ###
 
-
+// login user before creating chirp - JWT access token and Hex Refresh token provided in output
 POST http://localhost:8080/api/login
 
 {
-  "email": "anothertest@mail.com",
+  "email": "test@mail.com",
   "password": "jibberjabber"
 }
 
@@ -34,12 +49,30 @@ POST http://localhost:8080/api/login
 
 ###
 
-GET http://localhost:8080/api/chirps/f0dcc40a-8155-4f7c-9add-8b2c1c27e60d
+//get all chirps currently stored in database - optionally add /?sort=asc or /?sort=desc within URL to change order of output
+GET http://localhost:8080/api/chirps  
 
 ###
 
+//get all chirps from logged in user - requires user id set to ' auther_id ' in URL query
+GET http://localhost:8080/api/chirps/?author_id=4eb853a7-eea0-4131-a34a-990a908d8e32
+
+###
+
+//delete a chirp - requires login - chip ID required within URL 
+DELETE http://localhost:8080/api/chirps/c3b00194-1d8b-4c5d-959a-36f504db5460
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiY2xhaW0iLCJpc3MiOiJjaGlycHkiLCJzdWIiOiI3OWI5OTIzMS1jNWQ1LTRmZTgtOWQ3MC03ZjIwNzNjNzExYjMiLCJleHAiOjE3NTU4MjU3OTksImlhdCI6MTc1NTgyMjE5OX0.LKOTVG51vqtrxWACYMnA2uV63Pl5nAK8KUdWMDlBn3g
+Content-Type: application/json
+
+{
+  "key":"value"
+}
+
+###
+
+//refresh access token - requires refresh code after "Bearer" within header - provided at login 
 POST http://localhost:8080/api/refresh
-Authorization: Bearer YOUR_refresh_code
+Authorization: Bearer 3d553ae0266275d081edf788a730159a27a1397f8bc888f838034ecb5aa673dc
 Content-Type: application/json
 
 {
@@ -49,7 +82,19 @@ Content-Type: application/json
 
 ###
 
+//revokes access token - requires refresh code after "Bearer" within header - provided at login 
+POST http://localhost:8080/api/revoke
+Authorization: Bearer 3d553ae0266275d081edf788a730159a27a1397f8bc888f838034ecb5aa673dc
+Content-Type: application/json
 
+{
+  "key":"value"
+}
+
+###
+
+
+//resets all users and databases - requires ' PLATFORM="dev" ' to be set within .env file 
 POST http://localhost:8080/admin/reset
 
 
