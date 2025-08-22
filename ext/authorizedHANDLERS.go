@@ -112,24 +112,61 @@ func (cfg *ApiConfig) CreateChirpHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.DB.GetChirps(r.Context())
-	if err != nil {
-		WriteError(w, err)
+	authorID := r.URL.Query().Get("author_id")
+	if authorID != "" {
+
+		ID, err := uuid.Parse(authorID)
+		if err != nil {
+			WriteError(w, err)
+			return
+		}
+
+		chirps, err := cfg.DB.GetChirpsFromUser(r.Context(), ID)
+		if err != nil {
+			WriteError(w, err)
+			return
+		}
+
+		apiChirps := make([]NewChirp, 0, len(chirps))
+
+		for _, c := range chirps {
+			apiChirps = append(apiChirps, NewChirp{
+				ID:        c.ID,
+				CreatedAt: c.CreatedAt,
+				UpdatedAt: c.UpdatedAt,
+				Body:      c.Body,
+				UserID:    c.UserID,
+			})
+		}
+
+		WriteJSONResponse(w, 200, apiChirps)
+		fmt.Println("Author Chirps display success")
+		return
 	}
+	if authorID == "" {
 
-	apiChirps := make([]NewChirp, 0, len(chirps))
+		chirps, err := cfg.DB.GetChirps(r.Context())
+		if err != nil {
+			WriteError(w, err)
+			return
+		}
 
-	for _, c := range chirps {
-		apiChirps = append(apiChirps, NewChirp{
-			ID:        c.ID,
-			CreatedAt: c.CreatedAt,
-			UpdatedAt: c.UpdatedAt,
-			Body:      c.Body,
-			UserID:    c.UserID,
-		})
+		apiChirps := make([]NewChirp, 0, len(chirps))
+
+		for _, c := range chirps {
+			apiChirps = append(apiChirps, NewChirp{
+				ID:        c.ID,
+				CreatedAt: c.CreatedAt,
+				UpdatedAt: c.UpdatedAt,
+				Body:      c.Body,
+				UserID:    c.UserID,
+			})
+		}
+
+		WriteJSONResponse(w, 200, apiChirps)
+		fmt.Println("no author ID found, all chirps displayed")
+		return
 	}
-
-	WriteJSONResponse(w, 200, apiChirps)
 }
 
 func (cfg *ApiConfig) GetSingleChirpHandler(w http.ResponseWriter, r *http.Request) {
@@ -359,6 +396,7 @@ func (cfg *ApiConfig) UpgradeToChirpyRedHandler(w http.ResponseWriter, r *http.R
 	envAPIKey, err := auth.GetAPIKey(r.Header)
 	if err != nil {
 		w.WriteHeader(401)
+		fmt.Println("invalid or missing API key")
 		return
 	}
 
