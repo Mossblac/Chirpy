@@ -16,7 +16,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	Sword, err := ext.GetSecretWord()
+	Sword, Pkey, err := ext.GetENVWords()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,6 +25,7 @@ func main() {
 		FileserverHits: atomic.Int32{},
 		DB:             dbQueries,
 		SecretWord:     Sword,
+		PolkaKey:       Pkey,
 	}
 
 	mux := http.NewServeMux()

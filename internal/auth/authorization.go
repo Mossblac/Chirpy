@@ -46,3 +46,21 @@ func GetBearerToken(headers http.Header) (string, error) {
 	}
 
 }
+
+func GetAPIKey(headers http.Header) (string, error) {
+	rawAPIkey := headers.Get("Authorization")
+	if rawAPIkey == "" {
+		return "", fmt.Errorf("no Authorization header found")
+	}
+
+	SplitAPIKey := strings.Split(rawAPIkey, " ")
+
+	if SplitAPIKey[0] != "ApiKey" {
+		return "", fmt.Errorf("API key not formatted correctly")
+	} else if SplitAPIKey[0] == "ApiKey" && len(SplitAPIKey) == 1 {
+		return "", fmt.Errorf("API key missing")
+	} else {
+		APIkey := strings.TrimSpace(strings.TrimPrefix(headers.Get("Authorization"), "ApiKey"))
+		return APIkey, nil
+	}
+}

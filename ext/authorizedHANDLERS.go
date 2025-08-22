@@ -20,6 +20,7 @@ type ApiConfig struct {
 	FileserverHits atomic.Int32
 	DB             *database.Queries
 	SecretWord     string
+	PolkaKey       string
 }
 
 type Params struct {
@@ -355,32 +356,46 @@ func (cfg *ApiConfig) DeleteChirpHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *ApiConfig) UpgradeToChirpyRedHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	WebHookEvent := HookEvent{}
-	err := decoder.Decode(&WebHookEvent)
+	envAPIKey, err := auth.GetAPIKey(r.Header)
 	if err != nil {
-		WriteError(w, err)
+		w.WriteHeader(401)
 		return
 	}
 
-	if WebHookEvent.Event != "user.upgraded" {
-		w.WriteHeader(204)
-		return
-	} else {
-		userID, err := uuid.Parse(WebHookEvent.Data.User_id)
+	APIKEY := cfg.PolkaKey
+
+	if envAPIKey == APIKEY {
+		decoder := json.NewDecoder(r.Body)
+		WebHookEvent := HookEvent{}
+		err = decoder.Decode(&WebHookEvent)
 		if err != nil {
 			WriteError(w, err)
 			return
 		}
-		err = cfg.DB.UpgradeToChirpyRed(r.Context(), userID)
-		if err != nil {
-			w.WriteHeader(404)
-			fmt.Printf("%v", err)
+
+		if WebHookEvent.Event != "user.upgraded" {
+			w.WriteHeader(204)
 			return
 		} else {
-			w.WriteHeader(204)
-			fmt.Println("user upgrade success")
-			return
+			userID, err := uuid.Parse(WebHookEvent.Data.User_id)
+			if err != nil {
+				WriteError(w, err)
+				return
+			}
+			err = cfg.DB.UpgradeToChirpyRed(r.Context(), userID)
+			if err != nil {
+				w.WriteHeader(404)
+				fmt.Printf("%v", err)
+				return
+			} else {
+				w.WriteHeader(204)
+				fmt.Println("user upgrade success")
+				return
+			}
 		}
+	} else {
+		w.WriteHeader(401)
+		fmt.Println("API key does not verify")
+		return
 	}
 }
